@@ -15,9 +15,9 @@
   </a>
 </p>
 
-**Fast:** Install and run any JS tool quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
+**Fast:** Install and run any JavaScript / Node.JS tool quickly and seamlessly! Volta is built in Rust and ships as a snappy static binary.
 
-**Reliable:** Ensure everyone in your project has the same tools—without interfering with their workflow.
+**Reliable:** Ensure everyone in your project has the same tools — without interfering with their workflow.
 
 **Universal:** No matter the package manager, Node runtime, or OS, one command is all you need: `volta install`.
 
@@ -25,12 +25,21 @@
 
 - Speed 🚀
 - Seamless, per-project version switching
-- Cross-platform support, including Windows and all Unix shells
+- Cross-platform support, including Windows and all Linux / UNIX shells
 - Support for multiple package managers
 - Stable tool installation—no reinstalling on every Node upgrade!
 - Extensibility hooks for site-specific customization
 
 ## Installing Volta
+
+```bash
+# getting the install script with curl but you can use wget alternatively as well
+curl https://get.volta.sh | bash
+
+volta install node
+
+node
+```
 
 Read the [Getting Started Guide](https://docs.volta.sh/guide/getting-started) on our website for detailed instructions on how to install Volta.
 
