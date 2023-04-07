@@ -32,7 +32,7 @@
 
 ## Installing Volta
 
-```bash
+```sh
 # getting the install script with curl but you can use wget alternatively as well
 curl https://get.volta.sh | bash
 
