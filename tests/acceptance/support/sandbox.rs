@@ -6,12 +6,12 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use cfg_if::cfg_if;
-use hyperx::header::HttpDate;
+use headers::{Expires, Header};
 use mockito::{self, mock, Matcher};
-use semver::Version;
+use node_semver::Version;
 use test_support::{self, ok_or_panic, paths, paths::PathExt, process::ProcessBuilder};
 use volta_core::fs::{set_executable, symlink_file};
-use volta_core::tool::{Node, Pnpm, Yarn, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION, NODE_DISTRO_OS};
+use volta_core::tool::{Node, Pnpm, Yarn};
 
 // version cache for node and yarn
 #[derive(PartialEq, Clone)]
@@ -44,11 +44,18 @@ impl CacheBuilder {
 
         // write expiry file
         let one_day = Duration::from_secs(24 * 60 * 60);
-        let expiry_date = HttpDate::from(if self.expired {
+        let expiry_date = Expires::from(if self.expired {
             SystemTime::now() - one_day
         } else {
             SystemTime::now() + one_day
         });
+
+        let mut header_values = Vec::with_capacity(1);
+        expiry_date.encode(&mut header_values);
+        // Since we just `.encode()`d into `header_values, it is guaranteed to
+        // have a `.first()`.
+        let encoded_expiry_date = header_values.first().unwrap();
+
         let mut expiry_file = File::create(&self.expiry_path).unwrap_or_else(|e| {
             panic!(
                 "could not create cache expiry file {}: {}",
@@ -56,7 +63,7 @@ impl CacheBuilder {
                 e
             )
         });
-        ok_or_panic! { expiry_file.write_all(expiry_date.to_string().as_bytes()) };
+        ok_or_panic! { expiry_file.write_all(encoded_expiry_date.as_bytes()) };
     }
 
     fn dirname(&self) -> &Path {
@@ -213,19 +220,15 @@ impl From<DistroMetadata> for YarnBerryFixture {
 
 impl DistroFixture for NodeFixture {
     fn server_path(&self) -> String {
-        let version = &self.metadata.version;
-        format!(
-            "/v{}/node-v{}-{}-{}.{}",
-            version, version, NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
-        )
+        let version = Version::parse(self.metadata.version).unwrap();
+        let filename = Node::archive_filename(&version);
+        format!("/v{version}/{filename}")
     }
 
     fn fixture_path(&self) -> String {
-        let version = &self.metadata.version;
-        format!(
-            "tests/fixtures/node-v{}-{}-{}.{}",
-            version, NODE_DISTRO_OS, NODE_DISTRO_ARCH, NODE_DISTRO_EXTENSION
-        )
+        let version = Version::parse(self.metadata.version).unwrap();
+        let filename = Node::archive_filename(&version);
+        format!("tests/fixtures/{filename}")
     }
 
     fn metadata(&self) -> &DistroMetadata {
@@ -449,7 +452,7 @@ impl SandboxBuilder {
 
             let range_mock = mock("GET", &server_path[..])
                 .match_header("Range", Matcher::Any)
-                .with_body(&uncompressed_size_bytes)
+                .with_body(uncompressed_size_bytes)
                 .create();
             self.root.mocks.push(range_mock);
         }
@@ -457,7 +460,7 @@ impl SandboxBuilder {
         let file_mock = mock("GET", &server_path[..])
             .match_header("Range", Matcher::Missing)
             .with_header("Accept-Ranges", "bytes")
-            .with_body_from_file(&fixture_path)
+            .with_body_from_file(fixture_path)
             .create();
         self.root.mocks.push(file_mock);
 
@@ -856,7 +859,7 @@ impl Sandbox {
     /// Example:
     ///     assert_that(p.volta("use node 9.5"), execs());
     pub fn volta(&self, cmd: &str) -> ProcessBuilder {
-        let mut p = self.process(&volta_exe());
+        let mut p = self.process(volta_exe());
         split_and_add_args(&mut p, cmd);
         p
     }

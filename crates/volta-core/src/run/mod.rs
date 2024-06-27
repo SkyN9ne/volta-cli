@@ -9,7 +9,7 @@ use crate::platform::{CliPlatform, Image, Sourced};
 use crate::session::Session;
 use crate::VOLTA_FEATURE_PNPM;
 use log::debug;
-use semver::Version;
+use node_semver::Version;
 
 pub mod binary;
 mod executor;
@@ -96,7 +96,7 @@ fn get_executor(
                     binary::command(exe, args, session)
                 }
             }
-            Some("yarn") => yarn::command(args, session),
+            Some("yarn") | Some("yarnpkg") => yarn::command(args, session),
             _ => binary::command(exe, args, session),
         }
     }

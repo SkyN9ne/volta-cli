@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use super::{Node, Package, PackageManager, PackageManagerKind, Toolchain};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use textwrap::{fill, Options};
 use volta_core::style::{text_width, tool_version, MAX_WIDTH};
 
@@ -13,9 +13,7 @@ static NO_RUNTIME: &str = "⚡️ No Node runtimes installed!
     You can install a runtime by running `volta install node`. See `volta help install` for
     details and more options.";
 
-lazy_static! {
-    static ref TEXT_WIDTH: usize = text_width().unwrap_or(MAX_WIDTH);
-}
+static TEXT_WIDTH: Lazy<usize> = Lazy::new(|| text_width().unwrap_or(MAX_WIDTH));
 
 #[allow(clippy::unnecessary_wraps)] // Needs to match the API of `plain::format`
 pub(super) fn format(toolchain: &Toolchain) -> Option<String> {
@@ -340,7 +338,7 @@ fn format_package(package: &Package) -> String {
             let binaries = wrap(format!("binary tools: {}", tools));
             let platform_detail = wrap(format!(
                 "runtime: {}\npackage manager: {}",
-                tool_version("node", &node),
+                tool_version("node", node),
                 // TODO: Should be updated when we support installing with custom package_managers,
                 // whether Yarn or non-built-in versions of npm
                 "npm@built-in"
@@ -400,19 +398,17 @@ where
 mod tests {
     use std::path::PathBuf;
 
-    use lazy_static::lazy_static;
-    use semver::Version;
+    use node_semver::Version;
+    use once_cell::sync::Lazy;
 
     use super::*;
 
-    lazy_static! {
-        static ref NODE_12: Version = Version::from((12, 2, 0));
-        static ref NODE_11: Version = Version::from((11, 9, 0));
-        static ref NODE_10: Version = Version::from((10, 15, 3));
-        static ref YARN_VERSION: Version = Version::from((1, 16, 0));
-        static ref NPM_VERSION: Version = Version::from((6, 13, 1));
-        static ref PROJECT_PATH: PathBuf = PathBuf::from("~/path/to/project.json");
-    }
+    static NODE_12: Lazy<Version> = Lazy::new(|| Version::from((12, 2, 0)));
+    static NODE_11: Lazy<Version> = Lazy::new(|| Version::from((11, 9, 0)));
+    static NODE_10: Lazy<Version> = Lazy::new(|| Version::from((10, 15, 3)));
+    static YARN_VERSION: Lazy<Version> = Lazy::new(|| Version::from((1, 16, 0)));
+    static NPM_VERSION: Lazy<Version> = Lazy::new(|| Version::from((6, 13, 1)));
+    static PROJECT_PATH: Lazy<PathBuf> = Lazy::new(|| PathBuf::from("~/path/to/project.json"));
 
     mod active {
         use super::*;
@@ -1136,7 +1132,7 @@ See `volta help install` for details and more options.";
     mod packages {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::Version;
+        use node_semver::Version;
 
         #[test]
         fn none() {
@@ -1262,7 +1258,7 @@ See `volta help install` for details and more options.";
     mod tools {
         use super::*;
         use crate::command::list::{Package, PackageDetails};
-        use semver::Version;
+        use node_semver::Version;
 
         #[test]
         fn none() {
